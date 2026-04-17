@@ -1,26 +1,134 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg:         #fdf6e3;
+  --card:       #fffdf7;
+  --border:     #2d1810;
+  --text:       #1a0f00;
+  --muted:      #7a6a55;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --shadow:     4px 4px 0px #2d1810;
+  --shadow-sm:  3px 3px 0px #2d1810;
+  --shadow-xs:  2px 2px 0px #2d1810;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Zone palette */
+  --green:      #5aa84f;
+  --green-bg:   #d4edcc;
+  --green-mid:  #a8d8a0;
+  --green-dark: #2d6e2a;
+
+  --amber:      #e89020;
+  --amber-bg:   #fde8b0;
+  --amber-mid:  #f5c860;
+  --amber-dark: #7a4800;
+
+  --purple:     #8b5cf6;
+  --purple-bg:  #ede9fe;
+  --purple-mid: #c4b5fd;
+  --purple-dark:#4c1d95;
+
+  --red:        #c0392b;
+  --red-bg:     #fde8e8;
+  --red-mid:    #f4a7a0;
+  --red-dark:   #7f1d1d;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Pixel font ──────────────────────────────────────────────── */
+.font-pixel {
+  font-family: 'Press Start 2P', cursive;
+  line-height: 1.6;
+}
+
+/* ── Pixel card ──────────────────────────────────────────────── */
+.px-card {
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow);
+  background: var(--card);
+  border-radius: 2px;
+}
+
+/* ── Pixel button (press-down effect) ────────────────────────── */
+.px-btn {
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 2px;
+  transition: transform 0.07s ease, box-shadow 0.07s ease;
+  cursor: pointer;
+}
+.px-btn:hover  { transform: translate(1px, 1px); box-shadow: var(--shadow-xs); }
+.px-btn:active { transform: translate(3px, 3px); box-shadow: none; }
+
+/* ── Zone card variants ──────────────────────────────────────── */
+.px-green  { border-color: var(--green-dark);  box-shadow: 4px 4px 0 var(--green-dark);  }
+.px-amber  { border-color: var(--amber-dark);  box-shadow: 4px 4px 0 var(--amber-dark);  }
+.px-purple { border-color: var(--purple-dark); box-shadow: 4px 4px 0 var(--purple-dark); }
+.px-red    { border-color: var(--red-dark);    box-shadow: 4px 4px 0 var(--red-dark);    }
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
+
+/* ── Card flip ───────────────────────────────────────────────── */
+.flip-card { perspective: 1000px; }
+.flip-card-inner {
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+  position: relative;
+}
+.flip-card-inner.flipped { transform: rotateY(180deg); }
+.flip-card-front,
+.flip-card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; /* hidden face must not intercept clicks */
+}
+/* when flipped: back is visible → enable its clicks, disable front's */
+.flip-card-inner.flipped .flip-card-back  { pointer-events: auto; }
+.flip-card-inner.flipped .flip-card-front { pointer-events: none; }
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes bounceIn {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.bounce-in { animation: bounceIn 0.25s ease-out; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease-out; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.animate-shake { animation: shake 0.45s ease-out; }
+
+/* ── Pixel checkerboard divider ──────────────────────────────── */
+.px-divider {
+  height: 6px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--border) 0px, var(--border) 6px,
+    transparent   6px, transparent  12px
+  );
 }
