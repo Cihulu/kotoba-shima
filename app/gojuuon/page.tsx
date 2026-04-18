@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { kanaRows, allKana, KanaItem } from '../data/kana';
 import { useUser } from '../context/UserContext';
 import { playCorrect, playWrong } from '../lib/sound';
@@ -43,16 +43,20 @@ export default function GojuuonPage() {
   const [quizIndex, setQuizIndex] = useState(0);
   const [options, setOptions]     = useState<string[]>([]);
   const [selected, setSelected]   = useState<string | null>(null);
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [score, setScore]         = useState(0);
   const [streak, setStreak]       = useState(0);
   const [total, setTotal]         = useState(0);
   const [finished, setFinished]   = useState(false);
 
-  const startQuiz = useCallback(() => {
+  const startQuiz = useCallback((overrideDir?: QuizDir) => {
+    // cancel any pending answer-advance timer so it can't overwrite new quiz state
+    if (advanceTimer.current) { clearTimeout(advanceTimer.current); advanceTimer.current = null; }
+    const dir = overrideDir ?? quizDir;
     const list = shuffle(allKana);
     setQuizList(list);
     setQuizIndex(0);
-    setOptions(getOptions(list[0], allKana, kanaType, quizDir));
+    setOptions(getOptions(list[0], allKana, kanaType, dir));
     setSelected(null);
     setScore(0); setStreak(0); setTotal(0);
     setFinished(false);
@@ -78,7 +82,8 @@ export default function GojuuonPage() {
       playWrong();
       setStreak(0);
     }
-    setTimeout(() => {
+    advanceTimer.current = setTimeout(() => {
+      advanceTimer.current = null;
       const next = quizIndex + 1;
       if (next >= quizList.length) { setFinished(true); return; }
       setQuizIndex(next);
@@ -128,7 +133,7 @@ export default function GojuuonPage() {
             表格
           </button>
           <button
-            onClick={startQuiz}
+            onClick={() => startQuiz()}
             className="px-4 py-2 text-sm font-bold"
             style={mode === 'quiz'
               ? { background: BORDER, color: CARD }
@@ -160,7 +165,7 @@ export default function GojuuonPage() {
             {([['kana2romaji', '假名→罗马字'], ['romaji2kana', '罗马字→假名']] as [QuizDir, string][]).map(([d, label], i) => (
               <button
                 key={d}
-                onClick={() => { setQuizDir(d); startQuiz(); }}
+                onClick={() => { setQuizDir(d); startQuiz(d); }}
                 className="px-4 py-2 text-sm font-bold"
                 style={quizDir === d
                   ? { background: DARK, color: '#fff' }
@@ -235,7 +240,7 @@ export default function GojuuonPage() {
                 {score / total >= 0.8 ? '★★★' : score / total >= 0.5 ? '★★☆' : '★☆☆'}
               </div>
               <button
-                onClick={startQuiz}
+                onClick={() => startQuiz()}
                 className="w-full py-2.5 text-sm font-bold active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
                 style={{ background: DARK, color: '#fff', border: `3px solid ${BORDER}`, boxShadow: `3px 3px 0 ${BORDER}`, borderRadius: '2px' }}
               >
