@@ -7,6 +7,7 @@ import {
   loadCurrentUserId, saveCurrentUserId,
   createEmptyUser,
 } from '../data/users';
+import { newCard, reviewCard } from '../lib/srs';
 
 interface UserContextType {
   user: UserProfile | null;
@@ -17,6 +18,7 @@ interface UserContextType {
   deleteUser: (id: string) => void;
   addNote: (entry: Omit<NoteEntry, 'id' | 'savedAt'>) => void;
   deleteNote: (noteId: string) => void;
+  updateSRS: (word: string, correct: boolean) => void;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -28,13 +30,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const loaded = loadUsers().map((u) => {
-      // Backfill notes array for users created before it existed,
-      // and backfill source field for notes saved before source was added.
       const notes = (u.notes ?? []).map((n) => ({
         ...n,
         source: (n.source ?? 'puzzle') as 'puzzle' | 'vocab',
       }));
-      return { ...u, notes };
+      return { ...u, notes, srsCards: u.srsCards ?? [] };
     });
     const savedId = loadCurrentUserId();
     setUsers(loaded);
@@ -86,6 +86,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
     saveUsers(updated);
   };
 
+  const updateSRS = (word: string, correct: boolean) => {
+    if (!currentId) return;
+    const updated = users.map((u) => {
+      if (u.id !== currentId) return u;
+      const existing = u.srsCards.find((c) => c.word === word);
+      const updatedCard = existing
+        ? reviewCard(existing, correct)
+        : (() => {
+            const card = newCard(word);
+            return correct ? card : { ...card, lapses: 1 };
+          })();
+      const srsCards = existing
+        ? u.srsCards.map((c) => (c.word === word ? updatedCard : c))
+        : [...u.srsCards, updatedCard];
+      return { ...u, srsCards };
+    });
+    setUsers(updated);
+    saveUsers(updated);
+  };
+
   const deleteNote = (noteId: string) => {
     if (!currentId) return;
     const updated = users.map((u) =>
@@ -109,7 +129,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   if (!ready) return null;
 
   return (
-    <UserContext.Provider value={{ user, users, switchUser, createUser, updateUser, deleteUser, addNote, deleteNote }}>
+    <UserContext.Provider value={{ user, users, switchUser, createUser, updateUser, deleteUser, addNote, deleteNote, updateSRS }}>
       {children}
     </UserContext.Provider>
   );

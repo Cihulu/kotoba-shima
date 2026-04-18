@@ -28,7 +28,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function FlashcardsPage() {
-  const { user, updateUser, addNote } = useUser();
+  const { user, updateUser, addNote, updateSRS } = useUser();
   const [level, setLevel]         = useState<Level>('N5');
   const [category, setCategory]   = useState('全部');
   const [deck, setDeck]           = useState<VocabItem[]>([]);
@@ -266,6 +266,7 @@ export default function FlashcardsPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => {
+                updateSRS(cur.word, false);
                 const next2 = new Set([...unknown, cur.word]);
                 setUnknown(next2);
                 updateUser({ vocabUnknown: [...next2] });
@@ -278,6 +279,7 @@ export default function FlashcardsPage() {
             </button>
             <button
               onClick={() => {
+                updateSRS(cur.word, true);
                 const next2 = new Set([...known, cur.word]);
                 setKnown(next2);
                 updateUser({ vocabKnown: [...next2], vocabUnknown: [...unknown] });

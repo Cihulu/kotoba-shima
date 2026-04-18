@@ -1,3 +1,6 @@
+import type { SRSCard } from '../lib/srs';
+export type { SRSCard };
+
 export interface NoteEntry {
   id: string;
   savedAt: string;
@@ -29,6 +32,7 @@ export interface UserProfile {
   vocabUnknown: string[];
   grammarRead: string[];
   notes: NoteEntry[];
+  srsCards: SRSCard[];
 }
 
 const USERS_KEY = 'nq-users';
@@ -64,5 +68,6 @@ export function createEmptyUser(name: string): UserProfile {
     vocabUnknown: [],
     grammarRead: [],
     notes: [],
+    srsCards: [],
   };
 }

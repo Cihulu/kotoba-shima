@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { dueCount } from '../lib/srs';
 
 const BORDER = '#2d1810';
 const CARD   = '#fffdf7';
@@ -17,11 +18,13 @@ const navItems = [
   { href: '/flashcards', label: '単語' },
   { href: '/puzzle',     label: '解謎' },
   { href: '/notebook',   label: 'ノート' },
+  { href: '/review',     label: '复习' },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, users, switchUser, createUser } = useUser();
+  const due = user ? dueCount(user.srsCards) : 0;
   const [open, setOpen]       = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -57,16 +60,23 @@ export default function Navbar() {
         <div className="flex items-center gap-1">
           {navItems.map((item) => {
             const active = pathname === item.href;
+            const isReview = item.href === '/review';
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="px-3 py-1.5 text-sm font-medium"
+                className="relative px-3 py-1.5 text-sm font-medium"
                 style={active
                   ? { background: BORDER, color: CARD, border: `2px solid ${BORDER}`, borderRadius: '2px' }
                   : { color: MUTED, border: '2px solid transparent', borderRadius: '2px' }}
               >
                 {item.label}
+                {isReview && due > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center font-pixel text-[7px] text-white"
+                        style={{ background: '#7f1d1d', borderRadius: '2px', lineHeight: 1 }}>
+                    {due > 99 ? '99+' : due}
+                  </span>
+                )}
               </Link>
             );
           })}
