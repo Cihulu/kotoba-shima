@@ -3,7 +3,7 @@
 const PREFERRED_VOICES = [
   'Kyoko',                    // macOS 女声
   'Otoya',                    // macOS 男声
-  'Google 日本語',            // Chrome 内置网络语音
+  'Google 日本語',            // Chrome 内置
   'Microsoft Haruka Desktop', // Windows
   'Microsoft Ayumi Desktop',  // Windows
   'O-Ren',                    // Safari
@@ -11,28 +11,35 @@ const PREFERRED_VOICES = [
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
 
-// Re-run voice selection whenever the browser finishes loading voices
-if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.addEventListener('voiceschanged', () => {
-    cachedVoice = null; // invalidate cache so next speak() picks up new voices
-  });
+function pickJapaneseVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  const ja = voices.filter((v) => v.lang.startsWith('ja'));
+  if (ja.length === 0) return null;
+  for (const name of PREFERRED_VOICES) {
+    const hit = ja.find((v) => v.name.includes(name));
+    if (hit) return hit;
+  }
+  return ja[0];
 }
 
 function getJapaneseVoice(): SpeechSynthesisVoice | null {
   if (cachedVoice) return cachedVoice;
-
   const voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) return null; // not ready yet
-
-  const ja = voices.filter((v) => v.lang.startsWith('ja'));
-  if (ja.length === 0) return null; // no Japanese voice installed
-
-  for (const name of PREFERRED_VOICES) {
-    const hit = ja.find((v) => v.name.includes(name));
-    if (hit) { cachedVoice = hit; return hit; }
-  }
-  cachedVoice = ja[0];
+  if (voices.length === 0) return null;
+  cachedVoice = pickJapaneseVoice(voices);
   return cachedVoice;
+}
+
+// Pre-cache voice as soon as voices are available (before first user click)
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  const preload = () => {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) cachedVoice = pickJapaneseVoice(voices);
+  };
+  preload();
+  window.speechSynthesis.addEventListener('voiceschanged', () => {
+    cachedVoice = null; // reset so preload() picks up fresh list
+    preload();
+  });
 }
 
 export function speak(text: string, rate = 0.82): void {
@@ -40,23 +47,31 @@ export function speak(text: string, rate = 0.82): void {
 
   const ss = window.speechSynthesis;
 
-  // Chrome bug: synthesis can silently enter a paused state
-  if (ss.paused) ss.resume();
-  ss.cancel();
+  // Only cancel if something is actually playing — calling cancel() on an idle
+  // synthesis in Chrome can corrupt the internal queue and silently drop the next speak()
+  if (ss.speaking || ss.pending) {
+    if (ss.paused) ss.resume();
+    ss.cancel();
+  }
 
-  const fire = () => {
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang  = 'ja-JP';
-    utt.rate  = rate;
-    utt.pitch = 1;
-    const voice = getJapaneseVoice();
-    if (voice) utt.voice = voice;
-    ss.speak(utt);
-  };
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang  = 'ja-JP';
+  utt.rate  = rate;
+  utt.pitch = 1;
+  utt.onerror = (e) => console.warn('[TTS]', e.error, '|', text);
+
+  const voice = getJapaneseVoice();
+  if (voice) utt.voice = voice;
 
   if (ss.getVoices().length > 0) {
-    fire();
+    ss.speak(utt);
   } else {
-    ss.addEventListener('voiceschanged', fire, { once: true });
+    // Voices not ready yet — defer; note this loses user-gesture context in Chrome,
+    // so it may be silent on very first interaction but will work on all subsequent ones
+    ss.addEventListener('voiceschanged', () => {
+      const v = getJapaneseVoice();
+      if (v) utt.voice = v;
+      ss.speak(utt);
+    }, { once: true });
   }
 }
